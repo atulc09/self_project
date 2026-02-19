@@ -38,13 +38,13 @@ def register_user(user:schemas.UserCreate,db:Session=Depends(get_db)):
         raise HTTPException(status_code=400,detail="user already exist")
     
     #hash the password
-    password=utils.get_password_hash(user.password)
+    password_hashed=utils.get_password_hash(user.password)
              
     #create new user instance
     new_user=models.User(
         username=user.username,
         email=user.email,
-        password_hash=user.password,
+        password_hash=.password_hashed,
         is_verfied=user.is_verfied
     )
 

@@ -45,7 +45,7 @@ def register_user(user:schemas.UserCreate,db:Session=Depends(get_db)):
         username=user.username,
         email=user.email,
         password_hash=.password_hashed,
-        is_verfied=user.is_verfied
+        is_verified=user.is_verified
     )
 
     #save to database
@@ -54,7 +54,7 @@ def register_user(user:schemas.UserCreate,db:Session=Depends(get_db)):
     db.refresh(new_user)
 
     #return the value of (excluding password)
-    return {"id":new_user.id,"username":new_user.username,"email":new_user.email,"is_verfied":new_user.is_verfied}
+    return {"id":new_user.id,"username":new_user.username,"email":new_user.email,"is_verified":new_user.is_verified}
 
 
 

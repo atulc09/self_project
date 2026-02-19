@@ -5,7 +5,7 @@ class UserCreate(BaseModel):
     username: str
     email: EmailStr
     password: str 
-    is_verfied: Optional[bool] = False
+    is_verified: Optional[bool] = False
 
 class OTPVerify(BaseModel):
     email: EmailStr

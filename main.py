@@ -58,5 +58,34 @@ def register_user(user:schemas.UserCreate,db:Session=Depends(get_db)):
 
 
 
+@app.post("/login")
+def login(from_data:OAuth2PasswordRequestForm=Depends(),db:Session=Depends(get_db)):
+    user=db.query(models.User).filter(models.User.username== from_data.username).first()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="Invalid Username")
+        
+    if not utils.verify_password(from_data.password,user.password_hash):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="Invalid Password")
+        
+    token_data={"sub":user.username,"is_verified":user.is_verified,}
+    token=create_access_token(token_data)
+    return {"access_token":token,"token_type":"bearer"}
+
+def get_current_user(token:str=Depends(oauth2_scheme)):
+    credential_exception=HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="Could not validate credentials",
+    headers={"WWW-Authenticate":"Bearer"})
+    
+    try:
+        payload = jwt.decode(token, auth.SECRET_KEY, algorithms=[auth.ALGORITHM])
+        username: str = payload.get("sub")
+        is_verified: bool = payload.get("is_verified")
+        if username is None or is_verified is None:
+            raise credential_exception
+    except JWTError:
+            raise credential_exception
+        
+    return {"username":username,is_verified:is_verified}
+
+
 
 

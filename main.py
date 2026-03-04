@@ -45,6 +45,7 @@ def register_user(user:schemas.UserCreate,db:Session=Depends(get_db)):
         username=user.username,
         email=user.email,
         password_hash=.password_hashed,
+        role=user.role
         is_verified=user.is_verified
     )
 
@@ -54,7 +55,7 @@ def register_user(user:schemas.UserCreate,db:Session=Depends(get_db)):
     db.refresh(new_user)
 
     #return the value of (excluding password)
-    return {"id":new_user.id,"username":new_user.username,"email":new_user.email,"is_verified":new_user.is_verified}
+    return {"id":new_user.id,"username":new_user.username,"email":new_user.email,"role":new_user.role,"is_verified":new_user.is_verified}
 
 
 
@@ -67,7 +68,7 @@ def login(from_data:OAuth2PasswordRequestForm=Depends(),db:Session=Depends(get_d
     if not utils.verify_password(from_data.password,user.password_hash):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="Invalid Password")
         
-    token_data={"sub":user.username,"is_verified":user.is_verified,}
+    token_data={"sub":user.username,"role":user.role,"is_verified":user.is_verified,}
     token=create_access_token(token_data)
     return {"access_token":token,"token_type":"bearer"}
 
@@ -78,6 +79,7 @@ def get_current_user(token:str=Depends(oauth2_scheme)):
     try:
         payload = jwt.decode(token, auth.SECRET_KEY, algorithms=[auth.ALGORITHM])
         username: str = payload.get("sub")
+        role:str=payload.get("role")
         is_verified: bool = payload.get("is_verified")
         if username is None or is_verified is None:
             raise credential_exception
@@ -85,6 +87,34 @@ def get_current_user(token:str=Depends(oauth2_scheme)):
             raise credential_exception
         
     return {"username":username,is_verified:is_verified}
+
+
+@app.get("/users/me")
+def get_me(current_user:dict=Depends(get_current_user)):
+    return current_user
+@app.get("/protected")
+def protected_route(current_user:dict=Depends(get_current_user)):
+    return {"Message":f"Hello,{current_user['username']} | You accessed a protected route" }
+    
+def require_roles(allowed_roles: list[str]):
+    async def role_checker(current_user:dict=Depends(get_current_user)):
+        user_role=current_user.get("role")
+        if user_role not in allowed_roles:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,detail="Not enough permission")
+        
+        return current_user
+    return role_checker
+        
+@app.get("/profile")
+def profile_route(current_user:dict=Depends(require_roles(["user","admin"]))):
+    return {"Message":f"Hello,{current_user['username']} | You accessed the profile route"}
+
+@app.get("/user/dashboard")
+def dashboard_route(current_user:dict=Depends(require_roles(["admin"]))):
+    return {"Message":f"Welcome to admin dashboard, {current_user['username']}"}
+@app.get("/admin/dashboard")
+def admin_dashboard(current_user:dict=Depends(require_roles(["admin"]))):   
+    return {"Message":f"Hello,{current_user['username']} | You accessed the admin dashboard"}
 
 
 

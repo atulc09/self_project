@@ -4,7 +4,8 @@ from typing import Optional
 class UserCreate(BaseModel):
     username: str
     email: EmailStr
-    password: str 
+    password: str
+    role: str
     is_verified: Optional[bool] = False
 
 class OTPVerify(BaseModel):
